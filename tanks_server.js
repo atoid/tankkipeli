@@ -39,15 +39,15 @@ console.log("tanks game server starting at port: " + SERVER_PORT);
 
 const Fs = require("fs");
 const Static = require("node-static");
-const Https = require("https");
-//const Http = require("http");
+//const Https = require("https");
+const Http = require("http");
 const WebSocketServer = require("ws").Server;
 
 const fileServer = new Static.Server("./static");
 
-const httpsServer = Https.createServer({
-    key: Fs.readFileSync("key.key"),
-    cert: Fs.readFileSync("cert.crt")
+const httpsServer = Http.createServer({
+    //key: Fs.readFileSync("key.key"),
+    //cert: Fs.readFileSync("cert.crt")
 });
 
 httpsServer.on('request', function(request, response) {
