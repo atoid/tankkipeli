@@ -21,11 +21,11 @@ const NUM_ITERATIONS = 7;
 const HIT_RADIUS = (11*11);
 const MAX_ENERGY = 30;
 const HIT_POINTS = 15;
-const MAX_PLAYERS = 10;
+const MAX_PLAYERS = 11;
 const PLAYER_START_X = 30;
 const PLAYER_SPACING = 120;
 const DEATH_TIMEOUT = (5 * 1000);
-const PLAYER_COLORS = ["red", "blue", "brown", "pink", "orange", "white", "gray", "purple", "gold", "chocolate"];
+const PLAYER_COLORS = ["red", "blue", "brown", "pink", "orange", "white", "gray", "purple", "gold", "chocolate", "yellow"];
 
 var tanks = [];
 var terrain = [];
