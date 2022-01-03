@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+
+<!-- TANK WARS   -->
+<!-- VERSION 1.0 -->
+<!-- 2.1.2022    -->
+<!-- Main html and code -->
+
+<head>
+<meta charset="UTF-8">
+<title>Tanks</title>
+<style>
+
+body {
+    color: white;
+    background-color: black;
+}
+
+canvas {
+    background-color: black;
+}
+
+div.game-login {
+    position: absolute;
+    margin: 20px;
+    left:0;
+    top:0;
+    z-index: 1;
+
+    font-size: 40px;
+
+    background-color: rgba(80, 80, 80, 0.6);
+    padding: 20px;
+    border-radius: 8px;
+
+    text-align: center;
+    user-select: none;
+}
+
+div.game-scores {
+    position: absolute;
+    margin: 20px;
+    left: 1140px;
+    top:0;
+    z-index: 1;
+
+    font-size: 18px;
+
+    background-color: rgba(80, 80, 80, 0.6);
+    padding: 10px;
+    border-radius: 8px;
+
+    text-align: left;
+    user-select: none;
+    white-space: nowrap;
+}
+
+input {
+    font-size: 40px;
+    margin: 5px;
+    text-align: center;
+}
+
+button {
+    font-size: 40px;
+    margin: 5px;
+}
+
+canvas.game-area {
+    position: relative;
+    left:0;
+    z-index: 0;
+}
+
+</style>
+</head>
+
+<body onload="init()">
+<script src="controls.js"></script>
+
+<script>
+
+"use strict";
+
+const WSS_URL = "wss://" + location.host;
+const CANVAS_WIDTH = 1300;
+const CANVAS_HEIGHT = 500;
+const CTRL_WIDTH = (64*3);
+const CTRL_HEIGHT = 64;
+const TANK_SIZE = 10;
+const BARREL_LENGTH = 20;
+const BARREL_WIDTH = 3;
+const PROJECTILE_COLOR = "red";
+const PROJECTILE_SIZE = 3.5;
+const PROJECTILE_V_SCALE = 0.3;
+const PROJECTILE_GRAVITY = 0.5;
+const COLLISION_ITERATIONS = 16;
+const AIM_TIMEOUT = 100;
+const TURN_SPEED = (Math.PI / 180);
+const MAX_POWER = 100;
+const POWER_SPEED = 0.75;
+const POWER_WIDTH = 200;
+const POWER_HEIGHT = 30;
+const POWER_SCALE = 2;
+const FIRE_TIMEOUT = 2000;
+
+var ws;
+var terrain;
+var ctx;
+var ctx_bg;
+var ctx_ctrl;
+var tanks = [];
+var own_name;
+var projectiles = [];
+var aim_timer;
+var fire_interval;
+var fire_power;
+var join_cb;
+var death_cb;
+var death = false;
+var curr_angle;
+var curr_power = 0;
+var can_fire = true;
+var ctrl_width = CTRL_WIDTH;
+var ctrl_height = CTRL_HEIGHT;
+var in_mobile = false;
+
+function init()
+{
+    console.log("init enter");
+    in_mobile = navigator.userAgent.match(/Android/i);
+
+    var elem = document.getElementById("mycanvas");
+    elem.width = CANVAS_WIDTH;
+    elem.height = CANVAS_HEIGHT;
+
+    elem.offscreenBgCanvas = document.createElement('canvas');
+    elem.offscreenBgCanvas.width = elem.width;
+    elem.offscreenBgCanvas.height = elem.height;    
+
+    elem.offscreenCtrlCanvas = document.createElement('canvas');
+    elem.offscreenCtrlCanvas.width = CTRL_WIDTH;
+    elem.offscreenCtrlCanvas.height = CTRL_HEIGHT;    
+
+    ctx = elem.getContext('2d');
+    ctx_bg = elem.offscreenBgCanvas.getContext('2d');
+    ctx_ctrl = elem.offscreenCtrlCanvas.getContext('2d');
+
+    if (in_mobile) {
+        ctrl_width *= 2.5;
+        ctrl_height *= 2.5;
+    }
+
+    update_terrain({ terrain: [], tank: {} });
+    init_controls(ctrl_width, ctrl_height);
+    update_controls();
+    setInterval(update_game, 20);
+
+    console.log("init exit");
+}
+
+function set_login_display(show)
+{
+    var elem = document.getElementById("login");
+    if (show) {
+        elem.style.display = "block";
+    }
+    else {
+        elem.style.display = "none";
+    }
+}
+
+function init_ws()
+{
+    ws = new WebSocket(WSS_URL);
+
+    ws.onopen = function() {
+        console.log("ws opened");
+        death = false;
+        set_login_display(false);
+        if (join_cb) {
+            join_cb();
+        }
+    };
+    
+    ws.onmessage = function (msg) { 
+        console.log(msg.data.substr(0, 100));
+        var msg = JSON.parse(msg.data);
+        handle_msg(ws, msg);
+    };
+    
+    ws.onclose = function() { 
+        console.log("ws closed");
+        ws = undefined;
+        curr_angle = undefined;
+        if (death_cb) {
+            death_cb();
+        }
+    };
+}
+
+function leave()
+{
+    if (ws) {
+        ws.close();
+    }
+    set_login_display(true);
+}
+
+function join()
+{
+    if (death && ws) {
+        death_cb = join;
+        ws.close();
+        return;
+    }
+
+    death_cb = undefined;
+
+    if (!ws) {
+        init_ws();
+        join_cb = join;
+    }
+    else {
+        var elem = document.getElementById("name");
+        var name = elem.value;
+
+        var msg = {
+            msg: "join",
+            name: name
+        };
+        ws.send(JSON.stringify(msg));
+    }
+}
+
+function hit(p)
+{
+    if (ws && p.own) {
+        var msg = {
+            msg: "hit",
+            x: p.x,
+            y: CANVAS_HEIGHT - p.y
+        }
+        ws.send(JSON.stringify(msg));
+    }
+}
+
+function aim()
+{
+    if (ws) {
+        clearTimeout(aim_timer);
+        aim_timer = setTimeout(function() {
+            var msg = {
+                msg: "aim",
+                angle: curr_angle
+            }
+            ws.send(JSON.stringify(msg));
+        }, AIM_TIMEOUT);
+    }
+}
+
+function fire()
+{
+    if (ws) {
+        var msg = {
+            msg: "fire",
+            power: curr_power
+        }
+        ws.send(JSON.stringify(msg));
+    }
+
+    can_fire = false;
+    setTimeout(function() {
+        curr_power = 0;
+        can_fire = true;
+    }, FIRE_TIMEOUT);
+}
+
+function handle_msg(ws, msg)
+{
+    if (msg.msg == "terrain") {
+        update_terrain(msg);
+    }
+    else if (msg.msg == "tanks") {
+        update_tanks(msg);
+    }
+    else if (msg.msg == "aim") {
+        update_aim(msg);
+    }
+    else if (msg.msg == "fire") {
+        update_fire(msg);
+    }
+    else if (msg.msg == "hit") {
+        update_hit(msg);
+    }
+    else if (msg.msg == "scores") {
+        update_scores(msg);
+    }
+    else if (msg.msg == "error") {
+        alert(msg.error);
+        leave();
+    }
+    else {
+        console.log("unknown message received");
+    }
+}
+
+function update_hit(msg)
+{
+    var tank = tanks.find(tank => tank.name == msg.name);
+    if (tank) {
+        tank.energy = msg.energy;
+    }
+}
+
+function update_tanks(msg)
+{
+    tanks = msg.tanks;
+    var tank = tanks.find(tank => tank.name == own_name);
+    if (!tank) {
+        death = true;
+        set_login_display(true);
+    }
+}
+
+function update_terrain(msg)
+{
+    own_name = msg.tank.name;
+    curr_angle = msg.tank.angle;
+    terrain = msg.terrain;
+
+	ctx_bg.strokeStyle = "green";
+    var grd = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    grd.addColorStop(0, "rgb(63, 114, 183, 1)");
+    grd.addColorStop(1, "rgb(192, 219, 236, 1)");
+    ctx_bg.fillStyle = grd;
+    ctx_bg.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx_bg.beginPath();
+	for (var i = 0; i < terrain.length; i++) {
+    	ctx_bg.moveTo(i, CANVAS_HEIGHT - terrain[i]);
+        ctx_bg.lineTo(i, CANVAS_HEIGHT);
+	}
+    ctx_bg.stroke();
+}
+
+function update_fire(msg)
+{
+    var tank = tanks.find(tank => tank.name == msg.name);
+    if (tank) {
+        tank.angle = msg.angle;
+        var x = tank.x + BARREL_LENGTH * Math.cos(tank.angle);
+        var y = CANVAS_HEIGHT - tank.y - BARREL_LENGTH * Math.sin(tank.angle);
+
+        projectiles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(msg.angle) * msg.power * PROJECTILE_V_SCALE,
+            vy: Math.sin(msg.angle) * msg.power * PROJECTILE_V_SCALE,
+            own: tank.name == own_name
+        });
+    }
+}
+
+function update_aim(msg)
+{
+    var tank = tanks.find(tank => tank.name == msg.name);
+    if (tank) {
+        tank.angle = msg.angle;
+    }
+}
+
+function update_controls()
+{
+    //ctx.fillStyle = "red";
+    //ctx_ctrl.fillRect(0, 0, CTRL_WIDTH, CTRL_HEIGHT);
+    ctx_ctrl.clearRect(0, 0, CTRL_WIDTH, CTRL_HEIGHT);
+    var img = document.getElementById("ctrl_arrow");
+    ctx_ctrl.globalAlpha = keys[1] ? 1 : 0.4;
+    ctx_ctrl.drawImage(img, 64, 0);
+    ctx_ctrl.save();
+    ctx_ctrl.scale(-1, 1);
+    ctx_ctrl.globalAlpha = keys[0] ? 1 : 0.4;
+    ctx_ctrl.drawImage(img, -64, 0);
+    ctx_ctrl.restore();
+    img = document.getElementById("ctrl_fire");
+    ctx_ctrl.globalAlpha = keys[2] ? 1 : 0.4;
+    ctx_ctrl.drawImage(img, 64*2, 0);
+}
+
+function update_power()
+{
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = "white";
+    ctx.fillRect(CANVAS_WIDTH / 2 - POWER_WIDTH / 2, CANVAS_HEIGHT - POWER_HEIGHT - 10, POWER_WIDTH, POWER_HEIGHT);
+    ctx.globalAlpha = 1;
+    if (curr_power > 0) {
+        ctx.fillRect(CANVAS_WIDTH / 2 - POWER_WIDTH / 2 , CANVAS_HEIGHT - POWER_HEIGHT - 10, curr_power * POWER_SCALE, POWER_HEIGHT);
+    }
+
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = 2;
+
+    ctx.strokeStyle = "black";
+    ctx.beginPath();
+    ctx.moveTo(CANVAS_WIDTH / 2 - POWER_WIDTH / 2 + 1 * POWER_WIDTH / 3, CANVAS_HEIGHT - POWER_HEIGHT - 10);
+    ctx.lineTo(CANVAS_WIDTH / 2 - POWER_WIDTH / 2 + 1 * POWER_WIDTH / 3, CANVAS_HEIGHT - 10);
+    ctx.moveTo(CANVAS_WIDTH / 2 - POWER_WIDTH / 2 + 2 * POWER_WIDTH / 3, CANVAS_HEIGHT - POWER_HEIGHT - 10);
+    ctx.lineTo(CANVAS_WIDTH / 2 - POWER_WIDTH / 2 + 2 * POWER_WIDTH / 3, CANVAS_HEIGHT - 10);
+    ctx.stroke();
+}
+
+function update_scores(msg)
+{
+    var elem = document.getElementById("scores");
+    var html_str = "";
+    for (var score of msg.scores) {
+        html_str += "<span>" + score.name + "&nbsp;" + score.score + "</span><br>";
+    }
+    if (html_str != "") {
+        elem.innerHTML = html_str;
+    }
+}
+
+function update_game(msg)
+{
+    handle_controls();
+    update_controls();
+
+    var elem = document.getElementById("mycanvas");
+    ctx.drawImage(elem.offscreenBgCanvas, 0, 0);
+    ctx.drawImage(elem.offscreenCtrlCanvas, CANVAS_WIDTH-ctrl_width, CANVAS_HEIGHT-ctrl_height, ctrl_width, ctrl_height);
+
+    update_power();
+    ctx.globalAlpha = 1;
+
+    for (var tank of tanks) {
+        if (tank.energy <= 0) {
+            tank.color = "black";
+        }
+
+        ctx.fillStyle = tank.color;
+        ctx.strokeStyle = tank.color;
+        ctx.lineWidth = BARREL_WIDTH;
+        ctx.beginPath();
+        ctx.ellipse(tank.x, CANVAS_HEIGHT - tank.y, TANK_SIZE, TANK_SIZE, 0, 0, Math.PI, true);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(tank.x, CANVAS_HEIGHT - tank.y-2);
+        var x = tank.x + BARREL_LENGTH * Math.cos(tank.angle);
+        var y = CANVAS_HEIGHT - tank.y - BARREL_LENGTH * Math.sin(tank.angle);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        var tm = ctx.measureText(tank.name);
+        ctx.fillStyle = "black";
+        ctx.font = "16px arial";
+        ctx.beginPath();
+        y = CANVAS_HEIGHT - tank.y;
+        ctx.fillText(tank.name, tank.x - tm.width/2, y+16);
+
+        if (tank.energy > 0) {
+            ctx.strokeStyle = "yellow";
+            ctx.moveTo(tank.x - tm.width/2, y+20);
+            ctx.lineTo(tank.x - tm.width/2 + tank.energy, y+20);
+            ctx.stroke();
+        }
+    }
+
+    for (var i in projectiles) {
+        var p = projectiles[i];
+        ctx.fillStyle = PROJECTILE_COLOR;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, PROJECTILE_SIZE, 0, 2*Math.PI);
+        ctx.fill();
+
+        p.lx = p.x;
+        p.ly = p.y;
+        p.x += p.vx;
+        p.y -= p.vy;
+        p.vy -= PROJECTILE_GRAVITY;
+
+        if (p.hit) {
+            projectiles.splice(i, 1);
+        }
+        else {
+            // Out of bounds and collisions
+            if (p.y > (CANVAS_HEIGHT - terrain[Math.round(p.x)])) {
+                var dx = (p.x - p.lx) / COLLISION_ITERATIONS;
+                var dy = (p.y - p.ly) / COLLISION_ITERATIONS;
+
+                for (var i = 1; i < COLLISION_ITERATIONS; i++) {
+                    var nx = Math.round(p.lx + i * dx);
+                    var ny = Math.round(p.ly + i * dy);
+
+                    if (ny > (CANVAS_HEIGHT - terrain[nx])) {
+                        p.x = nx;
+                        p.y = ny;
+                        p.hit = true;
+                        hit(p);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+function handle_controls()
+{
+    if (curr_angle !== undefined) {
+        if (keys[0]) {
+            if (curr_angle < (Math.PI - Math.PI/16)) {
+                curr_angle += TURN_SPEED;
+            }
+        }
+        else if (keys_last[0]) {
+            aim();
+        }
+
+        if (keys[1]) {
+            if (curr_angle > Math.PI/16) {
+                curr_angle -= TURN_SPEED;
+            }
+        }
+        else if (keys_last[1]) {
+            aim();
+        }
+    }
+
+    if (can_fire) {
+        if (keys[2]) {
+            if (curr_power < MAX_POWER) {
+                curr_power += POWER_SPEED;
+            }
+        }
+        else if (keys_last[2]) {
+            fire();
+        }
+    }
+
+    keys_last[0] = keys[0];
+    keys_last[1] = keys[1];
+    keys_last[2] = keys[2];
+
+    // Set locally if tank is still alive
+    var tank = tanks.find(tank => tank.name == own_name);
+    if (tank && tank.energy > 0) {
+        tank.angle = curr_angle;
+    }
+}
+
+</script>
+
+<div class="game-login" id="login">
+    <div>Name</div>
+    <input id="name" type="text" size="10" maxlength="8">
+    <br>
+    <button onclick="join()">Join</button>
+</div>
+
+<div class="game-scores" id="scores">
+    <span>No&nbsp;scores</span>
+</div>
+
+<canvas class="game-area" id="mycanvas" width="800" height="200"></canvas>
+
+<img style="display:none" id="ctrl_arrow" src="arrow.png">
+<img style="display:none" id="ctrl_fire" src="fire.png">
+
+</body>
+</html>
