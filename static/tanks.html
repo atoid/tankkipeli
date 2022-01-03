@@ -82,7 +82,7 @@ canvas.game-area {
 
 "use strict";
 
-const WSS_URL = "wss://" + location.host;
+const WSS_URL = ((location.protocol == "https:") ? "wss://" : "ws://") + location.host;
 const CANVAS_WIDTH = 1300;
 const CANVAS_HEIGHT = 500;
 const CTRL_WIDTH = (64*3);

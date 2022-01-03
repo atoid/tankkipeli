@@ -30,25 +30,39 @@ const PLAYER_COLORS = ["red", "blue", "brown", "pink", "orange", "white", "gray"
 var tanks = [];
 var terrain = [];
 var scores = [];
+var use_https = false;
 
 //
-// Https and websocket servers
+// http or https and websocket servers
 //
+
+const args = process.argv.slice(2);
+if (args[0] == "https") {
+    use_https = true;
+}
 
 console.log("tanks game server starting at port: " + SERVER_PORT);
+console.log("https is " + use_https);
 
 const Fs = require("fs");
 const Static = require("node-static");
-//const Https = require("https");
-const Http = require("http");
 const WebSocketServer = require("ws").Server;
 
 const fileServer = new Static.Server("./static");
 
-const httpsServer = Http.createServer({
-    //key: Fs.readFileSync("key.key"),
-    //cert: Fs.readFileSync("cert.crt")
-});
+var httpsServer;
+
+if (use_https) {
+    const Https = require("https");
+    httpsServer = Https.createServer({
+        key: Fs.readFileSync("key.key"),
+        cert: Fs.readFileSync("cert.crt")
+    });
+}
+else {
+    const Http = require("http");
+    httpsServer = Http.createServer({ });
+}
 
 httpsServer.on('request', function(request, response) {
     request.addListener('end', function () {
@@ -91,6 +105,7 @@ function handle_msg(ws, msg)
 {
     if (msg.msg == "join") {
         var name = msg.name.substr(0, MAX_NAME_LENGTH);
+        name = name.replace(/<[^>]+>/g, '');
         console.log(name + " wants to join");
         var tank = get_tank(ws, name);
         if (typeof(tank) === "object") {
