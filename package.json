@@ -1,6 +1,27 @@
 {
+  "name": "tankkipeli",
+  "version": "0.1.0",
+  "description": "Multiplayer tank game",
+  "main": "tanks_server.js",
+  "scripts": {
+    "start": "node tanks_server.js"
+  },
   "dependencies": {
     "node-static": "^0.7.11",
     "ws": "^8.4.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atoid/tankkipeli"
+  },
+  "keywords": [
+    "node",
+    "heroku",
+    "tankkipeli"
+  ],
+  "author": "Matti Kantola",
+  "contributors": [
+    "Matti Kantola <apophis@kajaani.net>"
+  ],
+  "license": "MIT"
 }
