@@ -28,8 +28,8 @@ const DEATH_TIMEOUT = (5 * 1000);
 const PLAYER_COLORS = ["red", "blue", "brown", "pink", "orange", "white", "gray", "purple", "gold", "chocolate", "yellow"];
 const MAX_SCORES = 10;
 
-const GAME_UPDATE_INTERVAL = (1000 * 1);
-const GAME_SET_TIME = 20;
+const GAME_UPDATE_INTERVAL = (1000 * 60);
+const GAME_SET_TIME = 15;
 
 var tanks = [];
 var terrain = [];
