@@ -14,13 +14,15 @@ const MAX_POWER = 100;
 const MIN_ANGLE = Math.PI/16;
 const MAX_ANGLE = (Math.PI - Math.PI/16)
 const TERRAIN_WIDTH = (2<<10);
+const TERRAIN_SEND_WIDTH = 1300;
+const TERRAIN_SEND_OFFSET = 1;
 const MAX_TERRAIN_HEIGHT = 120;
 const TERRAIN_SCALE = 0.9;
 const TERRAIN_BASE = 80;
 const NUM_ITERATIONS = 7;
 const HIT_RADIUS = (11*11);
 const MAX_ENERGY = 30;
-const HIT_POINTS = 15;
+const HIT_POINTS = 10;
 const MAX_PLAYERS = 11;
 const PLAYER_START_X = 30;
 const PLAYER_SPACING = 120;
@@ -59,7 +61,9 @@ const Fs = require("fs");
 const Static = require("node-static");
 const WebSocketServer = require("ws").Server;
 
-const fileServer = new Static.Server("./static");
+const fileServer = new Static.Server("./static", {
+    indexFile: "tanks.html"
+});
 
 var httpsServer;
 
@@ -200,7 +204,6 @@ function update_hit(ws, msg)
 
 function update_score_table(scores, tank, killed_tank)
 {
-    console.log(tank.name + " killed " + killed_tank.name);
     var score = scores.find(score => score.name == tank.name);
     if (score) {
         score.score++;
@@ -227,6 +230,7 @@ function update_scores(ws, killed_tank)
         }
 
         if (tank) {
+            console.log(tank.name + " killed " + killed_tank.name);
             update_score_table(scores_set, tank, killed_tank);
             update_score_table(scores_ath, tank, killed_tank);
         }
@@ -435,6 +439,9 @@ function gen_terrain()
             }
 	    }
     }
+
+    // Shorten data
+    terrain = terrain.slice(TERRAIN_SEND_OFFSET, TERRAIN_SEND_OFFSET + TERRAIN_SEND_WIDTH);
 
     // Round all values
     for (var i = 0; i < TERRAIN_WIDTH; i++) {
