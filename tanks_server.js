@@ -234,7 +234,7 @@ function update_scores(ws, killed_tank)
 
     var msg = {
         "msg": "scores",
-        "set_time": (game.set_time >= 10) ? "00:" + game.set_time : "00:0" + game.set_time;
+        "set_time": (game.set_time >= 10) ? "00:" + game.set_time : "00:0" + game.set_time,
         "scores_set": scores_set.slice(0, MAX_SCORES),
         "scores_ath": scores_ath.slice(0, MAX_SCORES)
     }
