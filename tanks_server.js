@@ -37,8 +37,8 @@ var scores_set = [];
 var scores_ath = [];
 
 var game = {
-    update_inverval,
-    set_time = 0
+    update_inverval: 0,
+    set_time: GAME_SET_TIME
 }
 
 var use_https = false;
@@ -234,7 +234,7 @@ function update_scores(ws, killed_tank)
 
     var msg = {
         "msg": "scores",
-        "set_time": game.set_time,
+        "set_time": (game.set_time >= 10) ? "00:" + game.set_time : "00:0" + game.set_time;
         "scores_set": scores_set.slice(0, MAX_SCORES),
         "scores_ath": scores_ath.slice(0, MAX_SCORES)
     }
@@ -444,9 +444,9 @@ function gen_terrain()
 
 function update_game()
 {
-    game.set_time++;
-    if (game.set_time > GAME_SET_TIME) {
-        game.set_time = 0;
+    game.set_time--;
+    if (game.set_time <= 0) {
+        game.set_time = GAME_SET_TIME;
 
         scores_set = [];
         gen_terrain();
