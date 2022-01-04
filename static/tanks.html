@@ -57,7 +57,7 @@ div.game-set-time {
 }
 
 div.game-ath-title {
-    width: 90px;
+    width: auto;
 }
 
 div.game-scores-set {
@@ -130,7 +130,8 @@ const POWER_WIDTH = 200;
 const POWER_HEIGHT = 30;
 const POWER_SCALE = 2;
 const FIRE_TIMEOUT = 2000;
-const IDLE_INTERVAL = 10000;
+const IDLE_INTERVAL_SET = 30000;
+const IDLE_INTERVAL_ATH = 10000;
 
 var ws;
 var terrain;
@@ -184,6 +185,7 @@ function init()
     setInterval(update_game, 20);
     init_displays();
     set_login_display(true);
+    setTimeout(toggle_scores, IDLE_INTERVAL_SET, IDLE_INTERVAL_ATH);
 
     console.log("init exit");
 }
@@ -194,6 +196,16 @@ function init_displays()
     set_display("scores_ath", false);
     set_display("set_time", true);
     set_display("ath_title", false);
+}
+
+function toggle_scores(next_timeout)
+{
+    toggle_display("scores_set");
+    toggle_display("scores_ath");
+    toggle_display("set_time");
+    toggle_display("ath_title");
+    setTimeout(toggle_scores, next_timeout, 
+        next_timeout == IDLE_INTERVAL_ATH ? IDLE_INTERVAL_SET : IDLE_INTERVAL_ATH);
 }
 
 function toggle_display(name)
@@ -217,18 +229,9 @@ function set_login_display(show)
 {
     if (show) {
         set_display("login", true);
-        clearInterval(idle_interval);
-        idle_interval = setInterval(function() {
-            toggle_display("scores_set");
-            toggle_display("scores_ath");
-            toggle_display("set_time");
-            toggle_display("ath_title");
-        }, IDLE_INTERVAL);
     }
     else {
         set_display("login", false);
-        clearInterval(idle_interval);
-        init_displays();
     }
 }
 
@@ -395,12 +398,18 @@ function update_terrain(msg)
 
     terrain = msg.terrain;
 
-	ctx_bg.strokeStyle = "green";
     var grd = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    grd.addColorStop(0, "rgb(63, 114, 183, 1)");
-    grd.addColorStop(1, "rgb(192, 219, 236, 1)");
+    grd.addColorStop(0, "rgb(63, 114, 183)");
+    grd.addColorStop(1, "rgb(192, 219, 236)");
     ctx_bg.fillStyle = grd;
     ctx_bg.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    grd = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    grd.addColorStop(0, "rgb(0, 178, 0)");
+    grd.addColorStop(0.7, "rgb(0, 178, 0)");
+    grd.addColorStop(1, "rgb(148, 224, 0)");
+    ctx_bg.strokeStyle = grd;
+
     ctx_bg.beginPath();
 	for (var i = 0; i < terrain.length; i++) {
     	ctx_bg.moveTo(i, CANVAS_HEIGHT - terrain[i]);
