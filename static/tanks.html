@@ -23,8 +23,8 @@ canvas {
 div.game-login {
     position: absolute;
     margin: 20px;
-    left:0;
-    top:0;
+    left: 0px;
+    top: 0px;
     z-index: 1;
 
     font-size: 40px;
@@ -37,17 +37,36 @@ div.game-login {
     user-select: none;
 }
 
-div.game-scores {
+div.game-set-time {
     position: absolute;
     margin: 20px;
     left: 1140px;
-    top:0;
+    top: 0px;
+    width: 50px;
     z-index: 1;
 
     font-size: 18px;
 
     background-color: rgba(80, 80, 80, 0.6);
-    padding: 10px;
+    padding: 5px 10px 5px 10px;
+    border-radius: 8px;
+
+    text-align: center;
+    user-select: none;
+    white-space: nowrap;
+}
+
+div.game-scores-set {
+    position: absolute;
+    margin: 20px;
+    left: 1140px;
+    top: 40px;
+    z-index: 1;
+
+    font-size: 18px;
+
+    background-color: rgba(80, 80, 80, 0.6);
+    padding: 5px 10px 5px 10px;
     border-radius: 8px;
 
     text-align: left;
@@ -325,8 +344,12 @@ function update_tanks(msg)
 
 function update_terrain(msg)
 {
-    own_name = msg.tank.name;
-    curr_angle = msg.tank.angle;
+    // Initial update contains own tank info
+    if (msg.tank) {
+        own_name = msg.tank.name;
+        curr_angle = msg.tank.angle;
+    }
+
     terrain = msg.terrain;
 
 	ctx_bg.strokeStyle = "green";
@@ -411,14 +434,17 @@ function update_power()
 
 function update_scores(msg)
 {
-    var elem = document.getElementById("scores");
+    var elem = document.getElementById("scores_set");
     var html_str = "";
-    for (var score of msg.scores) {
+    for (var score of msg.scores_set) {
         html_str += "<span>" + score.name + "&nbsp;" + score.score + "</span><br>";
     }
     if (html_str != "") {
         elem.innerHTML = html_str;
     }
+
+    var elem = document.getElementById("set_time");
+    elem.innerHTML = "<span>" + msg.set_time + "</span>";
 }
 
 function update_game(msg)
@@ -558,8 +584,12 @@ function handle_controls()
     <button onclick="join()">Join</button>
 </div>
 
-<div class="game-scores" id="scores">
-    <span>No&nbsp;scores</span>
+<div class="game-set-time" id="set_time">
+    <span>00:00</span>
+</div>
+
+<div class="game-scores-set" id="scores_set">
+    <span>No&nbsp;scores</span><br>
 </div>
 
 <canvas class="game-area" id="mycanvas" width="800" height="200"></canvas>

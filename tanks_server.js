@@ -26,10 +26,21 @@ const PLAYER_START_X = 30;
 const PLAYER_SPACING = 120;
 const DEATH_TIMEOUT = (5 * 1000);
 const PLAYER_COLORS = ["red", "blue", "brown", "pink", "orange", "white", "gray", "purple", "gold", "chocolate", "yellow"];
+const MAX_SCORES = 10;
+
+const GAME_UPDATE_INTERVAL = (1000 * 1);
+const GAME_SET_TIME = 20;
 
 var tanks = [];
 var terrain = [];
-var scores = [];
+var scores_set = [];
+var scores_ath = [];
+
+var game = {
+    update_inverval,
+    set_time = 0
+}
+
 var use_https = false;
 
 //
@@ -93,6 +104,9 @@ wss.on('connection', function(ws) {
 wss.on('close', function() {
     console.log("wss server closed");
 });
+
+// Main timer for updating game
+game.update_inverval = setInterval(update_game, GAME_UPDATE_INTERVAL);
 
 console.log("inits complete");
 httpsServer.listen(SERVER_PORT);
@@ -184,6 +198,25 @@ function update_hit(ws, msg)
     }
 }
 
+function update_score_table(scores, tank, killed_tank)
+{
+    console.log(tank.name + " killed " + killed_tank.name);
+    var score = scores.find(score => score.name == tank.name);
+    if (score) {
+        score.score++;
+    }
+    else {
+        scores.push({
+            score: 1,
+            name: tank.name
+        });
+    }
+
+    scores.sort(function(a, b) {
+        return b.score - a.score;
+    });
+}
+
 function update_scores(ws, killed_tank)
 {
     if (ws) {
@@ -194,27 +227,16 @@ function update_scores(ws, killed_tank)
         }
 
         if (tank) {
-            console.log(tank.name + " killed " + killed_tank.name);
-            var score = scores.find(score => score.name == tank.name);
-            if (score) {
-                score.score++;
-            }
-            else {
-                scores.push({
-                    score: 1,
-                    name: tank.name
-                });
-            }
+            update_score_table(scores_set, tank, killed_tank);
+            update_score_table(scores_ath, tank, killed_tank);
         }
     }
 
-    scores.sort(function(a, b) {
-        return b.score - a.score;
-    });
-
     var msg = {
         "msg": "scores",
-        "scores": scores.slice(0, MAX_PLAYERS)
+        "set_time": game.set_time,
+        "scores_set": scores_set.slice(0, MAX_SCORES),
+        "scores_ath": scores_ath.slice(0, MAX_SCORES)
     }
 
     var msg_str = JSON.stringify(msg);
@@ -289,6 +311,17 @@ function update_terrain(ws, tank)
         terrain: terrain
     };
     ws.send(JSON.stringify(msg));
+}
+
+function update_new_terrain()
+{
+    var msg = {
+        msg: "terrain",
+        terrain: terrain
+    };
+
+    var msg_str = JSON.stringify(msg);
+    update_all(msg_str);
 }
 
 function update_tanks()
@@ -407,4 +440,25 @@ function gen_terrain()
     for (var i = 0; i < TERRAIN_WIDTH; i++) {
         terrain[i] = parseInt(terrain[i]);
     }
+}
+
+function update_game()
+{
+    game.set_time++;
+    if (game.set_time > GAME_SET_TIME) {
+        game.set_time = 0;
+
+        scores_set = [];
+        gen_terrain();
+
+        // Update y positions
+        for (var tank of tanks) {
+            tank.y = terrain[tank.x];
+        }
+
+        update_new_terrain();
+        update_tanks();
+    }
+
+    update_scores();
 }
