@@ -444,7 +444,7 @@ function gen_terrain()
     terrain = terrain.slice(TERRAIN_SEND_OFFSET, TERRAIN_SEND_OFFSET + TERRAIN_SEND_WIDTH);
 
     // Round all values
-    for (var i = 0; i < TERRAIN_WIDTH; i++) {
+    for (var i = 0; i < terrain.length; i++) {
         terrain[i] = parseInt(terrain[i]);
     }
 }
