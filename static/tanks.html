@@ -56,6 +56,10 @@ div.game-set-time {
     white-space: nowrap;
 }
 
+div.game-ath-title {
+    width: 90px;
+}
+
 div.game-scores-set {
     position: absolute;
     margin: 20px;
@@ -91,6 +95,10 @@ canvas.game-area {
     z-index: 0;
 }
 
+.no-display {
+    display: none;
+}
+
 </style>
 </head>
 
@@ -122,6 +130,7 @@ const POWER_WIDTH = 200;
 const POWER_HEIGHT = 30;
 const POWER_SCALE = 2;
 const FIRE_TIMEOUT = 2000;
+const IDLE_INTERVAL = 10000;
 
 var ws;
 var terrain;
@@ -132,8 +141,6 @@ var tanks = [];
 var own_name;
 var projectiles = [];
 var aim_timer;
-var fire_interval;
-var fire_power;
 var join_cb;
 var death_cb;
 var death = false;
@@ -143,6 +150,7 @@ var can_fire = true;
 var ctrl_width = CTRL_WIDTH;
 var ctrl_height = CTRL_HEIGHT;
 var in_mobile = false;
+var idle_interval;
 
 function init()
 {
@@ -174,18 +182,52 @@ function init()
     init_controls(ctrl_width, ctrl_height);
     update_controls();
     setInterval(update_game, 20);
+    init_displays();
+    set_login_display(true);
 
     console.log("init exit");
 }
 
-function set_login_display(show)
+function init_displays()
 {
-    var elem = document.getElementById("login");
-    if (show) {
+    set_display("scores_set", true);
+    set_display("scores_ath", false);
+    set_display("set_time", true);
+    set_display("ath_title", false);
+}
+
+function toggle_display(name)
+{
+    var elem = document.getElementById(name);
+    if (elem.style.display == "none") {
         elem.style.display = "block";
     }
     else {
         elem.style.display = "none";
+    }
+}
+
+function set_display(name, display)
+{
+    var elem = document.getElementById(name);
+    elem.style.display = display ? "block" : "none";
+}
+
+function set_login_display(show)
+{
+    if (show) {
+        set_display("login", true);
+        idle_interval = setInterval(function() {
+            toggle_display("scores_set");
+            toggle_display("scores_ath");
+            toggle_display("set_time");
+            toggle_display("ath_title");
+        }, IDLE_INTERVAL);
+    }
+    else {
+        set_display("login", false);
+        clearInterval(idle_interval);
+        init_displays();
     }
 }
 
@@ -432,16 +474,22 @@ function update_power()
     ctx.stroke();
 }
 
-function update_scores(msg)
+function update_scores_table(name, scores)
 {
-    var elem = document.getElementById("scores_set");
+    var elem = document.getElementById(name);
     var html_str = "";
-    for (var score of msg.scores_set) {
+    for (var score of scores) {
         html_str += "<span>" + score.name + "&nbsp;" + score.score + "</span><br>";
     }
     if (html_str != "") {
         elem.innerHTML = html_str;
     }
+}
+
+function update_scores(msg)
+{
+    update_scores_table("scores_set", msg.scores_set);
+    update_scores_table("scores_ath", msg.scores_ath);
 
     var elem = document.getElementById("set_time");
     elem.innerHTML = "<span>" + msg.set_time + "</span>";
@@ -589,6 +637,14 @@ function handle_controls()
 </div>
 
 <div class="game-scores-set" id="scores_set">
+    <span>No&nbsp;scores</span><br>
+</div>
+
+<div class="game-set-time game-ath-title no-display" id="ath_title">
+    <span>Hall&nbsp;of&nbsp;fame</span><br>
+</div>
+
+<div class="game-scores-set no-display" id="scores_ath">
     <span>No&nbsp;scores</span><br>
 </div>
 
