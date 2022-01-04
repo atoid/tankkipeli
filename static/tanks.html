@@ -217,6 +217,7 @@ function set_login_display(show)
 {
     if (show) {
         set_display("login", true);
+        clearInterval(idle_interval);
         idle_interval = setInterval(function() {
             toggle_display("scores_set");
             toggle_display("scores_ath");
