@@ -26,6 +26,7 @@ const HIT_POINTS = 10;
 const MAX_PLAYERS = 11;
 const PLAYER_START_X = 30;
 const PLAYER_SPACING = 120;
+const PLAYER_RAND_X = 20;
 const DEATH_TIMEOUT = (5 * 1000);
 const PLAYER_COLORS = ["red", "blue", "brown", "pink", "orange", "white", "gray", "purple", "gold", "chocolate", "yellow"];
 const MAX_SCORES = 10;
@@ -37,6 +38,7 @@ var tanks = [];
 var terrain = [];
 var scores_set = [];
 var scores_ath = [];
+var slots = [];
 
 var game = {
     update_inverval: 0,
@@ -91,6 +93,11 @@ const wss = new WebSocketServer({
 //const wss = new WebSocket.Server({ port: SERVER_PORT });
 
 gen_terrain();
+
+// Slots array
+for (var i = 0; i < MAX_PLAYERS; i++) {
+    slots[i] = i;
+}
 
 wss.on('connection', function(ws) {
     console.log("ws client connected");
@@ -376,11 +383,24 @@ function get_tank(ws, name)
     return get_slot(tank);
 }
 
+function fy_shuffle(arr)
+{
+    var ci = arr.length;
+    var ri, tmp;
+
+    while (ci) {
+        ri = Math.floor(Math.random() * ci--);
+        tmp = arr[ci];
+        arr[ci] = arr[ri];
+        arr[ri] = tmp;
+    }
+}
+
 function get_slot(new_tank)
 {
-    for (var j = 0; j < 100; j++) {
-        var slot = Math.floor(MAX_PLAYERS * Math.random());
-        
+    fy_shuffle(slots);
+
+    for (var slot of slots) {
         var i = tanks.findIndex(tank => tank.slot == slot);
         if (i != -1) {
             var tank = tanks[i];
@@ -390,7 +410,7 @@ function get_slot(new_tank)
         }
 
         new_tank.slot = slot;
-        new_tank.x = PLAYER_START_X + PLAYER_SPACING * slot;
+        new_tank.x = PLAYER_START_X + PLAYER_SPACING * slot + Math.floor(PLAYER_RAND_X * Math.random());
         new_tank.y = terrain[new_tank.x];
 
         if (i != -1) {
@@ -403,7 +423,7 @@ function get_slot(new_tank)
         return new_tank;
     }
 
-    return "Could not get slot for tank.";
+    return "Too many players online.";
 }
 
 function gen_terrain()
