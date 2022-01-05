@@ -213,12 +213,15 @@ function update_score_table(scores, tank, killed_tank)
 {
     var score = scores.find(score => score.name == tank.name);
     if (score) {
-        score.score++;
+        score.score += (tank != killed_tank) ? 1 : -1;
+        if (score.score < 0) {
+            score.score = 0;
+        }
     }
-    else {
+    else if (tank != killed_tank) {
         scores.push({
-            score: 1,
-            name: tank.name
+            name: tank.name,
+            score: 1
         });
     }
 
@@ -231,13 +234,13 @@ function update_scores(ws, killed_tank)
 {
     if (ws) {
         var tank = tanks.find(tank => tank.ws == ws);
-        if (tank == killed_tank) {
-            console.log(tank.name + " suicide");
-            return;
-        }
-
         if (tank) {
-            console.log(tank.name + " killed " + killed_tank.name);
+            if (tank == killed_tank) {
+                console.log(tank.name + " suicide");
+            }
+            else {
+                console.log(tank.name + " killed " + killed_tank.name);
+            }
             update_score_table(scores_set, tank, killed_tank);
             update_score_table(scores_ath, tank, killed_tank);
         }
