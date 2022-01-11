@@ -1,3 +1,5 @@
+"use strict";
+
 //
 // TANK WARS
 // Mouse & touch controls

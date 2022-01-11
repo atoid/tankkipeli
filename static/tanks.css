@@ -1,0 +1,92 @@
+/*            */
+/* TANK WARS  */
+/* Stylesheet */
+/*            */
+
+body {
+    color: white;
+    background-color: black;
+}
+
+canvas {
+    background-color: black;
+}
+
+div.game-login {
+    position: absolute;
+    margin: 20px;
+    left: 0px;
+    top: 0px;
+    z-index: 1;
+
+    font-size: 40px;
+
+    background-color: rgba(80, 80, 80, 0.6);
+    padding: 20px;
+    border-radius: 8px;
+
+    text-align: center;
+    user-select: none;
+}
+
+div.game-set-time {
+    position: absolute;
+    margin: 20px;
+    left: 1140px;
+    top: 0px;
+    width: 50px;
+    z-index: 1;
+
+    font-size: 18px;
+
+    background-color: rgba(80, 80, 80, 0.6);
+    padding: 5px 10px 5px 10px;
+    border-radius: 8px;
+
+    text-align: center;
+    user-select: none;
+    white-space: nowrap;
+}
+
+div.game-ath-title {
+    width: auto;
+}
+
+div.game-scores-set {
+    position: absolute;
+    margin: 20px;
+    left: 1140px;
+    top: 40px;
+    z-index: 1;
+
+    font-size: 18px;
+
+    background-color: rgba(80, 80, 80, 0.6);
+    padding: 5px 10px 5px 10px;
+    border-radius: 8px;
+
+    text-align: left;
+    user-select: none;
+    white-space: nowrap;
+}
+
+input {
+    font-size: 40px;
+    margin: 5px;
+    text-align: center;
+}
+
+button {
+    font-size: 40px;
+    margin: 5px;
+}
+
+canvas.game-area {
+    position: relative;
+    left:0;
+    z-index: 0;
+}
+
+.no-display {
+    display: none;
+}

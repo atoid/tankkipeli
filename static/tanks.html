@@ -2,104 +2,14 @@
 <html>
 
 <!-- TANK WARS   -->
-<!-- VERSION 1.0 -->
-<!-- 2.1.2022    -->
+<!-- VERSION 1.1 -->
+<!-- 11.1.2022    -->
 <!-- Main html and code -->
 
 <head>
-<meta charset="UTF-8">
-<title>Tanks</title>
-<style>
-
-body {
-    color: white;
-    background-color: black;
-}
-
-canvas {
-    background-color: black;
-}
-
-div.game-login {
-    position: absolute;
-    margin: 20px;
-    left: 0px;
-    top: 0px;
-    z-index: 1;
-
-    font-size: 40px;
-
-    background-color: rgba(80, 80, 80, 0.6);
-    padding: 20px;
-    border-radius: 8px;
-
-    text-align: center;
-    user-select: none;
-}
-
-div.game-set-time {
-    position: absolute;
-    margin: 20px;
-    left: 1140px;
-    top: 0px;
-    width: 50px;
-    z-index: 1;
-
-    font-size: 18px;
-
-    background-color: rgba(80, 80, 80, 0.6);
-    padding: 5px 10px 5px 10px;
-    border-radius: 8px;
-
-    text-align: center;
-    user-select: none;
-    white-space: nowrap;
-}
-
-div.game-ath-title {
-    width: auto;
-}
-
-div.game-scores-set {
-    position: absolute;
-    margin: 20px;
-    left: 1140px;
-    top: 40px;
-    z-index: 1;
-
-    font-size: 18px;
-
-    background-color: rgba(80, 80, 80, 0.6);
-    padding: 5px 10px 5px 10px;
-    border-radius: 8px;
-
-    text-align: left;
-    user-select: none;
-    white-space: nowrap;
-}
-
-input {
-    font-size: 40px;
-    margin: 5px;
-    text-align: center;
-}
-
-button {
-    font-size: 40px;
-    margin: 5px;
-}
-
-canvas.game-area {
-    position: relative;
-    left:0;
-    z-index: 0;
-}
-
-.no-display {
-    display: none;
-}
-
-</style>
+    <meta charset="UTF-8">
+    <title>Tanks</title>
+    <link rel="stylesheet" href="tanks.css">
 </head>
 
 <body onload="init()">
@@ -109,7 +19,8 @@ canvas.game-area {
 
 "use strict";
 
-const WSS_URL = ((location.protocol == "https:") ? "wss://" : "ws://") + location.host;
+const WSS_HOST = (location.protocol == "file:") ? "192.168.1.192:8080" : location.host;
+const WSS_URL = ((location.protocol == "https:") ? "wss://" : "ws://") + WSS_HOST;
 const CANVAS_WIDTH = 1300;
 const CANVAS_HEIGHT = 500;
 const CTRL_WIDTH = (64*3);
