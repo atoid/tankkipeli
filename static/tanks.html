@@ -477,16 +477,12 @@ function update_game(msg)
         p.y -= p.vy;
         p.vy -= PROJECTILE_GRAVITY;
 
-        if (p.hit) {
+        // Check hit and out of bounds
+        if (p.hit || p.x < 0 || p.x > CANVAS_WIDTH) {
             projectiles.splice(i, 1);
         }
         else {
-            // Out of bounds and collisions
-            if (p.x < 0 || p.x > CANVAS_WIDTH) {
-                projectiles.splice(i, 1);
-                continue;
-            }
-
+            // Check collision and set hit
             if (p.y >= (CANVAS_HEIGHT - terrain[Math.round(p.x)])) {
                 var dx = (p.x - p.lx) / COLLISION_ITERATIONS;
                 var dy = (p.y - p.ly) / COLLISION_ITERATIONS;
