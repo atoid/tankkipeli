@@ -487,7 +487,7 @@ function update_game(msg)
                 var dx = (p.x - p.lx) / COLLISION_ITERATIONS;
                 var dy = (p.y - p.ly) / COLLISION_ITERATIONS;
 
-                for (var j = 1; i < COLLISION_ITERATIONS; j++) {
+                for (var j = 1; j < COLLISION_ITERATIONS; j++) {
                     var nx = Math.round(p.lx + j * dx);
                     var ny = Math.round(p.ly + j * dy);
 
