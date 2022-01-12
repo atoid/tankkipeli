@@ -178,14 +178,6 @@ function init_ws()
     };
 }
 
-function leave()
-{
-    if (ws) {
-        ws.close();
-    }
-    set_login_display(true);
-}
-
 function join()
 {
     if (death && ws) {
@@ -276,12 +268,20 @@ function handle_msg(ws, msg)
         update_scores(msg);
     }
     else if (msg.msg == "error") {
-        alert(msg.error);
-        leave();
+        update_error(msg);
     }
     else {
         console.log("unknown message received");
     }
+}
+
+function update_error(msg)
+{
+    alert(msg.error);
+    if (ws) {
+        ws.close();
+    }
+    set_login_display(true);
 }
 
 function update_hit(msg)
@@ -464,7 +464,7 @@ function update_game(msg)
         }
     }
 
-    for (var i in projectiles) {
+    for (var i = projectiles.length-1; i >= 0; i--) {
         var p = projectiles[i];
         ctx.fillStyle = PROJECTILE_COLOR;
         ctx.beginPath();
@@ -482,15 +482,21 @@ function update_game(msg)
         }
         else {
             // Out of bounds and collisions
-            if (p.y > (CANVAS_HEIGHT - terrain[Math.round(p.x)])) {
+            if (p.x < 0 || p.x > CANVAS_WIDTH) {
+                projectiles.splice(i, 1);
+                continue;
+            }
+
+            if (p.y >= (CANVAS_HEIGHT - terrain[Math.round(p.x)])) {
                 var dx = (p.x - p.lx) / COLLISION_ITERATIONS;
                 var dy = (p.y - p.ly) / COLLISION_ITERATIONS;
 
-                for (var i = 1; i < COLLISION_ITERATIONS; i++) {
-                    var nx = Math.round(p.lx + i * dx);
-                    var ny = Math.round(p.ly + i * dy);
+                for (var j = 1; i < COLLISION_ITERATIONS; j++) {
+                    var nx = Math.round(p.lx + j * dx);
+                    var ny = Math.round(p.ly + j * dy);
 
-                    if (ny > (CANVAS_HEIGHT - terrain[nx])) {
+                    if (ny >= (CANVAS_HEIGHT - terrain[nx])) {
+                        //console.log(`it: ${j} ${p.x}, ${p.y} ${nx}, ${ny} at ${CANVAS_HEIGHT-terrain[nx]}`);
                         p.x = nx;
                         p.y = ny;
                         p.hit = true;
@@ -553,7 +559,7 @@ function handle_controls()
     <div>Name</div>
     <input id="name" type="text" size="10" maxlength="8">
     <br>
-    <button onclick="join()">Join</button>
+    <button type="button" onclick="join()">Join</button>
 </div>
 
 <div class="game-set-time" id="set_time">
